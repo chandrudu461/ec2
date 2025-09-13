@@ -1,0 +1,61 @@
+# Use Python 3.9 slim image for smaller size
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    MODEL_NAME=distilgpt2 \
+    USE_CPU_ONLY=true \
+    HOST=0.0.0.0 \
+    PORT=8000
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip first
+RUN pip install --no-cache-dir --upgrade pip
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install dependencies step by step for better debugging
+RUN pip install --no-cache-dir fastapi==0.104.1
+RUN pip install --no-cache-dir uvicorn==0.24.0
+RUN pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir transformers==4.35.2
+RUN pip install --no-cache-dir tokenizers==0.15.0
+RUN pip install --no-cache-dir pydantic==2.5.0
+RUN pip install --no-cache-dir numpy==1.24.3
+RUN pip install --no-cache-dir httpx==0.25.2
+RUN pip install --no-cache-dir aiofiles==23.2.1
+RUN pip install --no-cache-dir python-multipart==0.0.6
+
+# Create model cache directory
+RUN mkdir -p /app/model_cache
+
+# Copy application code
+COPY . .
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash app && \
+    chown -R app:app /app
+USER app
+
+# Pre-download the model to reduce startup time
+RUN python -c "from transformers import pipeline; pipeline('text-generation', model='distilgpt2', cache_dir='/app/model_cache')"
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start the application
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
