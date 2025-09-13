@@ -34,9 +34,6 @@ RUN useradd --create-home --shell /bin/bash app && \
     chown -R app:app /app
 USER app
 
-# Pre-download the model to reduce startup time
-RUN python -c "from transformers import pipeline; pipeline('text-generation', model='distilgpt2', cache_dir='/app/model_cache')"
-
 # Expose port
 EXPOSE 8000
 

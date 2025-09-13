@@ -56,11 +56,14 @@ def load_lightweight_model():
         logger.info(f"Loading model: {model_name}")
         
         # Load tokenizer and model separately for better control
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            cache_dir="./model_cache"
+        )
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
             
-        # Use CPU for lightweight deployment
+        # Use CPU for lightweight deployment with memory optimization
         device = "cpu"
         chatbot = pipeline(
             "text-generation",
@@ -68,7 +71,11 @@ def load_lightweight_model():
             tokenizer=tokenizer,
             device=device,
             framework="pt",
-            clean_up_tokenization_spaces=True
+            clean_up_tokenization_spaces=True,
+            cache_dir="./model_cache",
+            # Memory optimization settings
+            torch_dtype="auto",
+            low_cpu_mem_usage=True
         )
         
         logger.info("Model loaded successfully")
