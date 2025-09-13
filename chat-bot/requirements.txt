@@ -1,10 +1,10 @@
 # Core FastAPI dependencies
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn==0.24.0
 
 # ML and NLP dependencies (lightweight versions)
 transformers==4.35.2
-torch==2.1.0+cpu --find-links https://download.pytorch.org/whl/torch_stable.html
+torch==2.1.0
 tokenizers==0.15.0
 
 # Data handling
@@ -15,13 +15,5 @@ numpy==1.24.3
 httpx==0.25.2
 aiofiles==23.2.1
 
-# Production and monitoring
+# Production dependencies
 python-multipart==0.0.6
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# Development dependencies (optional)
-pytest==7.4.3
-pytest-asyncio==0.21.1
-black==23.11.0
-flake8==6.1.0
