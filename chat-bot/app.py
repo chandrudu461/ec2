@@ -47,43 +47,65 @@ class ChatResponse(BaseModel):
     status: str = "success"
 
 def load_lightweight_model():
-    """Load a lightweight model suitable for EC2 deployment"""
+    """Load an ultra-lightweight model for 1GB RAM EC2 deployment"""
     global chatbot, tokenizer
     
     try:
-        # Use DistilGPT-2 for better performance
-        model_name = "distilgpt2"
-        logger.info(f"Loading model: {model_name}")
+        # Use the smallest possible model for 1GB RAM
+        model_name = "gpt2"  # Smallest GPT-2 variant
+        logger.info(f"Loading ultra-lightweight model: {model_name}")
         
-        # Load tokenizer and model separately for better control
+        # Load with maximum memory efficiency
         tokenizer = AutoTokenizer.from_pretrained(
             model_name,
-            cache_dir="./model_cache"
+            cache_dir="./model_cache",
+            low_cpu_mem_usage=True
         )
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
             
-        # Use CPU for lightweight deployment with memory optimization
-        device = "cpu"
+        # Ultra-lightweight pipeline settings
         chatbot = pipeline(
             "text-generation",
             model=model_name,
             tokenizer=tokenizer,
-            device=device,
+            device="cpu",
             framework="pt",
-            clean_up_tokenization_spaces=True,
             cache_dir="./model_cache",
-            # Memory optimization settings
-            torch_dtype="auto",
-            low_cpu_mem_usage=True
+            # Maximum memory optimization for 1GB RAM
+            torch_dtype="float32",
+            low_cpu_mem_usage=True,
+            # Reduce model precision to save memory
+            model_kwargs={
+                "torch_dtype": "float32",
+                "low_cpu_mem_usage": True,
+            }
         )
         
-        logger.info("Model loaded successfully")
+        logger.info("Ultra-lightweight model loaded successfully")
         return True
         
     except Exception as e:
         logger.error(f"Error loading model: {str(e)}")
-        return False
+        # Fallback: Try without any model caching
+        try:
+            logger.info("Trying fallback minimal configuration...")
+            from transformers import GPT2LMHeadModel, GPT2Tokenizer
+            
+            tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+            model = GPT2LMHeadModel.from_pretrained("gpt2", torch_dtype="float32")
+            
+            chatbot = pipeline(
+                "text-generation",
+                model=model,
+                tokenizer=tokenizer,
+                device="cpu"
+            )
+            logger.info("Fallback model loaded")
+            return True
+        except Exception as fallback_error:
+            logger.error(f"Fallback also failed: {str(fallback_error)}")
+            return False
 
 @app.on_event("startup")
 async def startup_event():
